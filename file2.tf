@@ -7,6 +7,7 @@ variable "env_prefix" {}
 variable "my_ip" {}
 variable "instance_type" {}
 variable "my_public_key_location" {}
+variable "my_private_key_location" {}
 
 
 resource "aws_vpc" "new-vpc" {
@@ -118,7 +119,28 @@ resource "aws_instance" "myproject-server" {
     Name : "${var.env_prefix}-server"
   }
 
-  user_data = file("script.sh")
+  connection {
+    type        = "ssh"
+    host        = self.public_ip
+    user        = "ec2-user"
+    private_key = file(var.my_private_key_location)
+  }
+
+  provisioner "file" {
+    source      = "script.sh"
+    destination = "/home/ec2-user/script.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "export ENV=dev",
+      "mkdir newfolder"
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = "echo ${self.public_ip} > output.txt"
+  }
 
 }
 
